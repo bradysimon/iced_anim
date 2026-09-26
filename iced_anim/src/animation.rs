@@ -126,7 +126,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &iced_core::widget::Tree,
-        layout: iced_core::Layout<'_>,
+        layout: iced_core::Layout,
         cursor: iced_core::mouse::Cursor,
         viewport: &iced_core::Rectangle,
         renderer: &Renderer,
@@ -143,13 +143,18 @@ where
     fn operate(
         &mut self,
         state: &mut iced_core::widget::Tree,
-        layout: iced_core::Layout<'_>,
+        layout: iced_core::Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn iced_core::widget::Operation<()>,
     ) {
-        self.content
-            .as_widget_mut()
-            .operate(&mut state.children[0], layout, renderer, operation);
+        self.content.as_widget_mut().operate(
+            &mut state.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn state(&self) -> iced_core::widget::tree::State {
@@ -159,17 +164,19 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut iced_core::widget::Tree,
-        layout: iced_core::Layout<'b>,
+        layout: iced_core::Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: iced_core::Vector,
-    ) -> Option<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
+        window: iced_core::Size,
+    ) -> Vec<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 
@@ -178,10 +185,12 @@ where
         tree: &mut iced_core::widget::Tree,
         renderer: &Renderer,
         limits: &iced_core::layout::Limits,
-    ) -> iced_core::layout::Node {
+    ) {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn draw(
@@ -190,7 +199,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &iced_core::renderer::Style,
-        layout: iced_core::Layout<'_>,
+        layout: iced_core::Layout,
         cursor: iced_core::mouse::Cursor,
         viewport: &iced_core::Rectangle,
     ) {
@@ -209,7 +218,7 @@ where
         &mut self,
         tree: &mut iced_core::widget::Tree,
         event: &iced_core::Event,
-        layout: iced_core::Layout<'_>,
+        layout: iced_core::Layout,
         cursor: iced_core::mouse::Cursor,
         renderer: &Renderer,
         shell: &mut iced_core::Shell<'_, Message>,

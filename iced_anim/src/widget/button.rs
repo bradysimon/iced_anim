@@ -155,7 +155,7 @@ where
     }
 
     /// Gets the status of the [`Button`] based on the current [`State`].
-    fn get_status(&self, state: &State, cursor: Cursor, layout: Layout<'_>) -> Status {
+    fn get_status(&self, state: &State, cursor: Cursor, layout: Layout) -> Status {
         let is_mouse_over = cursor.is_over(layout.bounds());
         if self.on_press.is_none() {
             Status::Disabled
@@ -213,34 +213,36 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::padded(limits, self.width, self.height, self.padding, |limits| {
-            self.content
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
-        })
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        layout::padded(
+            tree,
+            limits,
+            self.width,
+            self.height,
+            self.padding,
+            |tree, limits| {
+                self.content.as_widget_mut().layout(tree, renderer, limits);
+
+                tree.size
+            },
+        );
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
+            let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+            self.content
+                .as_widget_mut()
+                .operate(tree, layout, viewport, renderer, operation);
         });
     }
 
@@ -248,16 +250,18 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
+        let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
         self.content.as_widget_mut().update(
-            &mut tree.children[0],
+            content_tree,
             event,
-            layout.children().next().unwrap(),
+            content_layout,
             cursor,
             renderer,
             shell,
@@ -331,13 +335,13 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
         let state = tree.state.downcast_ref::<State>();
+        let (content_layout, content_tree) = layout.iter(&tree.children).next().unwrap();
 
         let style = state
             .animated_state
@@ -364,7 +368,7 @@ where
         };
 
         self.content.as_widget().draw(
-            &tree.children[0],
+            content_tree,
             renderer,
             theme,
             &renderer::Style {
@@ -379,7 +383,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -396,18 +400,17 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
+        window: Size,
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .as_widget_mut()
+            .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
 

@@ -213,27 +213,26 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.cached_element));
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.cached_element
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn operate(
         &mut self,
         state: &mut Tree,
-        layout: layout::Layout<'_>,
+        layout: layout::Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn iced_core::widget::Operation<()>,
     ) {
         self.cached_element.as_widget_mut().operate(
             &mut state.children[0],
             layout,
+            viewport,
             renderer,
             operation,
         );
@@ -242,24 +241,26 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: layout::Layout<'b>,
+        layout: layout::Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: iced_core::Vector,
-    ) -> Option<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
+        window: Size,
+    ) -> Vec<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
         self.cached_element.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: layout::Layout<'_>,
+        layout: layout::Layout,
         cursor: iced_core::mouse::Cursor,
         viewport: &iced_core::Rectangle,
         renderer: &Renderer,
@@ -279,7 +280,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &iced_core::renderer::Style,
-        layout: iced_core::Layout<'_>,
+        layout: iced_core::Layout,
         cursor: iced_core::mouse::Cursor,
         viewport: &iced_core::Rectangle,
     ) {
@@ -298,7 +299,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &iced_core::Event,
-        layout: iced_core::Layout<'_>,
+        layout: iced_core::Layout,
         cursor: iced_core::mouse::Cursor,
         renderer: &Renderer,
         shell: &mut iced_core::Shell<'_, Message>,
@@ -331,6 +332,8 @@ where
             // Update the animation and request a redraw
             state.animation.tick(*now);
             self.cached_element = (self.builder)(state.animation.value().clone());
+            // The rebuilt element may differ structurally, so its tree must be re-diffed before the next layout.
+            tree.diff_children(std::slice::from_mut(&mut self.cached_element));
         }
     }
 }
