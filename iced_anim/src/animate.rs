@@ -972,6 +972,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "widgets")]
     fn update_button_style() {
         let style = iced_widget::button::Style {
             background: Some(iced_core::Background::Color(iced_core::Color::BLACK)),
