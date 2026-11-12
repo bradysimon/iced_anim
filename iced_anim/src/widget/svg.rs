@@ -4,9 +4,8 @@ use iced_core::{
     layout,
     mouse::{self, Cursor},
     renderer, svg,
-    widget::{tree, Tree},
-    window, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation, Size, Vector,
-    Widget,
+    widget::{tree, Meta, Tree},
+    window, ContentFit, Event, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget,
 };
 use std::path::PathBuf;
 
@@ -144,6 +143,8 @@ where
         }
     }
 }
+
+impl<Theme> Meta for Svg<'_, Theme> where Theme: Catalog {}
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Svg<'a, Theme>
 where
@@ -287,16 +288,6 @@ where
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             state.animated_state.tick(*now);
         }
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: svg::Renderer + 'a,
-{
-    fn from(icon: Svg<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(icon)
     }
 }
 

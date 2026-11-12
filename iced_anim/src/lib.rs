@@ -15,14 +15,13 @@
 //! flag. You can use these as drop-in replacements for the existing widgets:
 //!
 //! ```rust
+//! # use iced_widget::Widget;
 //! # #[derive(Clone)] enum Message { DoSomething }
-//! # type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_widget::Renderer>;
 //! use iced_anim::widget::button;
 //!
-//! fn fancy_button<'a>() -> Element<'a, Message> {
+//! fn fancy_button<'a>() -> impl Widget<Message> + 'a {
 //!     button("Animated button")
 //!         .on_press(Message::DoSomething)
-//!         .into()
 //! }
 //! ```
 //!

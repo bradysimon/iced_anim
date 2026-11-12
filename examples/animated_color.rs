@@ -1,7 +1,7 @@
 use iced::{
     color,
     widget::{button, column, container, text, Row},
-    Border, Color, Element, Font, Length,
+    Border, Color, Font, Length, Widget,
 };
 use iced_anim::animation_builder::AnimationBuilder;
 
@@ -54,7 +54,7 @@ impl State {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let buttons = Row::with_children(Self::COLORS.iter().cloned().map(|color| {
             button(text(""))
                 .style(move |_, _| iced::widget::button::Style {
@@ -65,7 +65,6 @@ impl State {
                 .on_press(Message::ChangeColor(color))
                 .width(32)
                 .height(32)
-                .into()
         }))
         .spacing(8);
 
@@ -89,7 +88,6 @@ impl State {
                 })
                 .center_x(Length::Fill)
                 .center_y(Length::Fixed(30.0))
-                .into()
             })
             .animates_layout(true);
 
@@ -97,7 +95,6 @@ impl State {
             .spacing(8)
             .padding(8)
             .width(Length::Shrink)
-            .into()
     }
 }
 

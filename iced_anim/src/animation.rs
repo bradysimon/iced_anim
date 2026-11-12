@@ -10,10 +10,8 @@
 //! # Example
 //! ```rust
 //! use iced_core::time::Duration;
-//! use iced_widget::{button, text, Row};
+//! use iced_widget::{button, text, Row, Widget};
 //! use iced_anim::{Animation, Animated, Event, transition::Easing};
-//!
-//! # type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_widget::Renderer>;
 //!
 //! struct State {
 //!     size: Animated<f32>,
@@ -39,21 +37,22 @@
 //!         }
 //!     }
 //!
-//!     fn view(&self) -> Element<'_, Message> {
+//!     fn view(&self) -> impl Widget<Message> + '_ {
 //!         Row::new()
 //!             .push(
 //!                 button(text("Change target"))
 //!                     .on_press(Message::UpdateSize((self.size.target() + 50.0).into()))
+//!                     .boxed()
 //!             )
 //!             .push(
 //!                 Animation::new(&self.size, text(self.size.value().to_string()))
 //!                     .on_update(Message::UpdateSize)
+//!                     .boxed()
 //!             )
-//!            .into()
 //!     }
 //! }
 //! ```
-use iced_core::{time::Instant, Element, Rectangle, Widget};
+use iced_core::{time::Instant, widget::Meta, Rectangle, Widget};
 
 use crate::{Animate, Animated, Event};
 
@@ -61,11 +60,11 @@ use crate::{Animate, Animated, Event};
 /// This is useful for animating changes to a widget's appearance or layout
 /// where you want to directly change the value stored in your state versus
 /// passively animating a value like the `AnimationBuilder`.
-pub struct Animation<'a, T: Animate, Message, Theme, Renderer> {
+pub struct Animation<'a, T: Animate, Message, W> {
     /// The animated value that will be updated over time.
     animated_value: &'a Animated<T>,
     /// The content that will respond to the animation.
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     /// The function that will be called when the spring needs to be updated.
     on_update: Option<Box<dyn Fn(Event<T>) -> Message>>,
     /// Whether animations are disabled, in which case the value will be updated
@@ -73,19 +72,16 @@ pub struct Animation<'a, T: Animate, Message, Theme, Renderer> {
     is_disabled: bool,
 }
 
-impl<'a, T, Message, Theme, Renderer> Animation<'a, T, Message, Theme, Renderer>
+impl<'a, T, Message, W> Animation<'a, T, Message, W>
 where
     T: 'static + Animate,
     Message: 'a,
 {
     /// Creates a new `Animation` with the given `animated_value` and `content`.
-    pub fn new(
-        animated_value: &'a Animated<T>,
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(animated_value: &'a Animated<T>, content: W) -> Self {
         Self {
             animated_value,
-            content: content.into(),
+            content,
             on_update: None,
             is_disabled: false,
         }
@@ -108,15 +104,18 @@ where
     }
 }
 
-impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Animation<'a, T, Message, Theme, Renderer>
+impl<T, Message, W> Meta for Animation<'_, T, Message, W> where T: 'static + Animate {}
+
+impl<'a, T, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Animation<'a, T, Message, W>
 where
     T: 'static + Animate,
+    W: Widget<Message, Theme, Renderer>,
     Message: 'a,
     Renderer: 'a + iced_core::Renderer,
 {
     fn size(&self) -> iced_core::Size<iced_core::Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn diff(&mut self, tree: &mut iced_core::widget::Tree) {
@@ -131,13 +130,8 @@ where
         viewport: &iced_core::Rectangle,
         renderer: &Renderer,
     ) -> iced_core::mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -148,7 +142,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn iced_core::widget::Operation<()>,
     ) {
-        self.content.as_widget_mut().operate(
+        self.content.operate(
             &mut state.children[0],
             layout,
             viewport,
@@ -170,7 +164,7 @@ where
         translation: iced_core::Vector,
         window: iced_core::Size,
     ) -> Vec<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
+        self.content.overlay(
             &mut tree.children[0],
             layout,
             renderer,
@@ -186,9 +180,7 @@ where
         renderer: &Renderer,
         limits: &iced_core::layout::Limits,
     ) {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.content.layout(&mut tree.children[0], renderer, limits);
 
         tree.size = tree.children[0].size;
     }
@@ -203,7 +195,7 @@ where
         cursor: iced_core::mouse::Cursor,
         viewport: &iced_core::Rectangle,
     ) {
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -224,7 +216,7 @@ where
         shell: &mut iced_core::Shell<'_, Message>,
         viewport: &iced_core::Rectangle,
     ) {
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -250,24 +242,11 @@ where
     }
 }
 
-impl<'a, T, Message, Theme, Renderer> From<Animation<'a, T, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: 'static + Animate,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: iced_core::Renderer + 'a,
-{
-    fn from(animation: Animation<'a, T, Message, Theme, Renderer>) -> Self {
-        Self::new(animation)
-    }
-}
-
 /// A helper function to create an [`Animation`] with a given value.
-pub fn animation<'a, T, Message, Theme, Renderer>(
+pub fn animation<'a, T, Message, W>(
     value: &'a Animated<T>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Animation<'a, T, Message, Theme, Renderer>
+    content: W,
+) -> Animation<'a, T, Message, W>
 where
     T: 'static + Animate,
     Message: 'a,

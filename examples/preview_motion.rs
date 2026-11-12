@@ -1,7 +1,7 @@
 use iced::{
     widget::{button, column, container, pick_list, radio, row, space, stack, text, Column, Row},
     Alignment::Center,
-    Border, Element, Length,
+    Border, Length, Widget,
 };
 use iced_anim::{
     animated::Mode, animation_builder::AnimationBuilder, spring::Motion, transition::Easing,
@@ -129,7 +129,7 @@ impl State {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let radio_buttons = column![
             radio(
                 "Spring",
@@ -145,14 +145,14 @@ impl State {
             ),
         ];
 
-        let animation_picker: Element<Message> = if self.is_spring {
+        let animation_picker = if self.is_spring {
             pick_list(
                 Some(self.preview_motion.clone()),
                 MOTIONS,
                 PreviewMotion::to_string,
             )
             .on_select(Message::ChangeMotion)
-            .into()
+            .boxed()
         } else {
             pick_list(
                 Some(self.preview_easing.clone()),
@@ -160,7 +160,7 @@ impl State {
                 PreviewEasing::to_string,
             )
             .on_select(Message::ChangeCurve)
-            .into()
+            .boxed()
         };
 
         let toggle_button = button(text("Toggle")).on_press(Message::ToggleOffset);
@@ -182,7 +182,6 @@ impl State {
                     .height(Length::Fill),
                 )
                 .center(Length::Fill)
-                .into()
             })
             .animation(self.animation_mode())
             .animates_layout(true),
@@ -192,12 +191,11 @@ impl State {
         container(column![header, animated_circles].spacing(8).padding(8))
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
     }
 }
 
 /// The background circles showing the final animation positions.
-fn track_background<'a>(is_horizontal: bool) -> Element<'a, Message> {
+fn track_background<'a>(is_horizontal: bool) -> impl Widget<Message> + 'a {
     let width: Length = if is_horizontal {
         Length::Fill
     } else {
@@ -215,24 +213,25 @@ fn track_background<'a>(is_horizontal: bool) -> Element<'a, Message> {
     };
 
     let track_items = vec![
-        circle(None, is_horizontal),
-        spacer.into(),
-        circle(None, is_horizontal),
+        circle(None, is_horizontal).boxed(),
+        spacer.boxed(),
+        circle(None, is_horizontal).boxed(),
     ];
-    let track_circles: Element<'a, Message, _, _> = if is_horizontal {
-        Row::with_children(track_items).into()
+
+    let track_circles = if is_horizontal {
+        Row::with_children(track_items).boxed()
     } else {
-        Column::with_children(track_items).into()
+        Column::with_children(track_items).boxed()
     };
+
     container(track_circles)
         .width(width)
         .height(height)
         .center(Length::Fill)
-        .into()
 }
 
 /// The circle that animates along the track.
-fn circle_track<'a>(offset: f32, is_horizontal: bool) -> Element<'a, Message> {
+fn circle_track<'a>(offset: f32, is_horizontal: bool) -> impl Widget<Message> + 'a {
     if is_horizontal {
         container(row![
             offset.is_sign_positive().then_some(
@@ -248,7 +247,7 @@ fn circle_track<'a>(offset: f32, is_horizontal: bool) -> Element<'a, Message> {
             ),
         ])
         .center(Length::Fill)
-        .into()
+        .boxed()
     } else {
         container(column![
             offset.is_sign_positive().then_some(
@@ -264,12 +263,12 @@ fn circle_track<'a>(offset: f32, is_horizontal: bool) -> Element<'a, Message> {
             ),
         ])
         .center(Length::Fill)
-        .into()
+        .boxed()
     }
 }
 
 /// A circle that animates along the track or a background circle.
-fn circle<'a>(offset: Option<f32>, is_horizontal: bool) -> Element<'a, Message> {
+fn circle<'a>(offset: Option<f32>, is_horizontal: bool) -> impl Widget<Message> + 'a {
     container(space().width(Length::Fill).height(Length::Fill))
         .style(move |theme: &iced::Theme| {
             let color = if let Some(offset) = offset {
@@ -291,7 +290,6 @@ fn circle<'a>(offset: Option<f32>, is_horizontal: bool) -> Element<'a, Message> 
         })
         .width(CIRCLE_DIAMETER)
         .height(CIRCLE_DIAMETER)
-        .into()
 }
 
 /// Gets a unique color based on the current offset.

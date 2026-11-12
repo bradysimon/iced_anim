@@ -1,6 +1,6 @@
 use iced::{
     widget::{button, column, container, text},
-    Border, Color, Element, Length,
+    Border, Color, Length, Widget,
 };
 use iced_anim::AnimationBuilder;
 use iced_anim::{transition::Easing, Animate};
@@ -57,7 +57,7 @@ impl State {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let adjust_button = button(text("Adjust")).on_press(Message::Randomize);
 
         let animated_box = AnimationBuilder::new(self.rectangle.clone(), |rectangle| {
@@ -76,7 +76,6 @@ impl State {
             })
             .center_x(Length::Fixed(rectangle.width))
             .center_y(Length::Fixed(rectangle.height))
-            .into()
         })
         .animates_layout(true)
         .animation(Easing::EASE);
@@ -87,7 +86,6 @@ impl State {
             .spacing(8)
             .padding(8)
             .width(Length::Shrink)
-            .into()
     }
 }
 

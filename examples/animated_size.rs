@@ -1,6 +1,6 @@
 use iced::{
     widget::{button, column, container, row, text},
-    Border, Element, Length,
+    Border, Length, Widget,
 };
 use iced_anim::{animation_builder::AnimationBuilder, transition::Easing};
 
@@ -28,7 +28,7 @@ impl State {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let buttons = row![
             button(text("-150")).on_press(Message::AdjustSize(-150.0)),
             button(text("-50")).on_press(Message::AdjustSize(-50.0)),
@@ -49,7 +49,6 @@ impl State {
                     ..Default::default()
                 })
                 .center(size)
-                .into()
         })
         .animates_layout(true)
         .animation(Easing::EASE);
@@ -60,7 +59,6 @@ impl State {
             .spacing(8)
             .padding(8)
             .width(Length::Shrink)
-            .into()
     }
 }
 

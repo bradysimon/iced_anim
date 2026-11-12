@@ -1,7 +1,7 @@
 use iced::{
     time::Duration,
     widget::{container, space, MouseArea},
-    Border, Color, Element, Length, Padding, Point, Size, Subscription, Theme,
+    Border, Color, Length, Padding, Point, Size, Subscription, Theme, Widget,
 };
 use iced_anim::{spring::Motion, AnimationBuilder};
 
@@ -55,7 +55,7 @@ impl State {
         })
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let size = self.size;
         container(
             AnimationBuilder::new(self.position, move |position| {
@@ -79,7 +79,6 @@ impl State {
                     .height(Length::Fill),
                 )
                 .on_move(Message::MoveTo)
-                .into()
             })
             .animation(Motion {
                 response: Duration::from_millis(500),
@@ -89,7 +88,6 @@ impl State {
         )
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
     }
 }
 

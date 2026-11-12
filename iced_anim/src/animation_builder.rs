@@ -15,25 +15,22 @@
 //! The element built within the closure will animate to the new size automatically.
 //!
 //! ```rust
-//! # use iced_widget::{container, text};
+//! # use iced_widget::{container, text, Widget};
 //! # use iced_anim::{AnimationBuilder, transition::Easing};
 //! # use iced_core::time::Duration;
-//! # type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_widget::Renderer>;
 //! # struct State {
 //! #     size: f32,
 //! # }
 //! # #[derive(Clone)]
 //! # enum Message {}
 //! # impl State {
-//! #     fn view(&self) -> Element<'_, Message> {
+//! #     fn view(&self) -> impl Widget<Message> + '_ {
 //! AnimationBuilder::new(self.size, |size| {
 //!     container(text(size as isize))
 //!         .center(size)
-//!         .into()
 //! })
 //! .animates_layout(true)
 //! .animation(Easing::LINEAR.with_duration(Duration::from_millis(300)))
-//! #   .into()
 //! #     }
 //! # }
 //! ```
@@ -42,9 +39,8 @@
 //!
 //! ```rust
 //! # use iced_core::Color;
-//! # use iced_widget::{container, text};
+//! # use iced_widget::{container, text, Widget};
 //! # use iced_anim::AnimationBuilder;
-//! # type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_widget::Renderer>;
 //!
 //! # #[derive(Default)]
 //! # struct MyType {
@@ -54,13 +50,11 @@
 //! # #[derive(Clone)]
 //! # enum Message {}
 //! # impl MyType {
-//! #   fn view(&self) -> Element<'_, Message> {
+//! #   fn view(&self) -> impl Widget<Message> + '_ {
 //! AnimationBuilder::new((self.size, self.color), |(size, color)| {
 //!     container(text(size as isize).color(color))
 //!         .center(size)
-//!         .into()
 //! })
-//! # .into()
 //! #   }
 //! # }
 //! ```
@@ -81,8 +75,8 @@
 use crate::{animate::Animate, animated::Mode, Animated};
 use iced_core::{
     layout,
-    widget::{tree, Tree},
-    Element, Length, Rectangle, Size, Widget,
+    widget::{tree, Meta, Tree},
+    Length, Rectangle, Size, Widget,
 };
 
 /// A widget that implicitly animates a value anytime it changes.
@@ -91,14 +85,14 @@ use iced_core::{
 /// based on some state change. Animations happen automatically when the value
 /// changes, and the widget will use spring interpolation to animate the value
 /// over a specified duration.
-pub struct AnimationBuilder<'a, T, Message, Theme, Renderer>
+pub struct AnimationBuilder<'a, T, W>
 where
     T: 'static + Animate,
 {
     /// The target value to animate to.
     target: T,
     /// The function that builds the element using the animated value.
-    builder: Box<dyn Fn(T) -> Element<'a, Message, Theme, Renderer> + 'a>,
+    builder: Box<dyn Fn(T) -> W + 'a>,
     /// The mode defining how to animate the value.
     mode: Mode,
     /// Whether the layout will be affected by the animated value.
@@ -107,26 +101,23 @@ where
     /// immediately without animating. Useful for reduced motion preferences.
     is_disabled: bool,
     /// The cached element built using the most recent animated value and `builder`.
-    cached_element: Element<'a, Message, Theme, Renderer>,
+    cached_element: W,
 }
 
-impl<'a, T, Message, Theme, Renderer> AnimationBuilder<'a, T, Message, Theme, Renderer>
+impl<'a, T, W> AnimationBuilder<'a, T, W>
 where
     T: 'static + Animate,
 {
     /// Creates a new `AnimationBuilder` with the given value and builder function.
-    pub fn new(
-        target: T,
-        builder: impl Fn(T) -> Element<'a, Message, Theme, Renderer> + 'a,
-    ) -> Self {
-        let element = (builder)(target.clone());
+    pub fn new(target: T, builder: impl Fn(T) -> W + 'a) -> Self {
+        let cached_element = (builder)(target.clone());
         Self {
             target,
             builder: Box::new(builder),
-            cached_element: element,
             mode: Mode::default(),
             animates_layout: false,
             is_disabled: false,
+            cached_element,
         }
     }
 
@@ -155,32 +146,21 @@ where
     }
 }
 
-impl<'a, T, Message, Theme, Renderer> From<AnimationBuilder<'a, T, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: 'static + Animate,
-    Message: Clone + 'a,
-    Theme: 'a,
-    Renderer: iced_core::Renderer + 'a,
-{
-    fn from(animation: AnimationBuilder<'a, T, Message, Theme, Renderer>) -> Self {
-        Self::new(animation)
-    }
-}
-
 struct State<T> {
     animation: Animated<T>,
     mode: Mode,
 }
 
-impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for AnimationBuilder<'_, T, Message, Theme, Renderer>
+impl<T, W> Meta for AnimationBuilder<'_, T, W> where T: 'static + Animate {}
+
+impl<T, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer> for AnimationBuilder<'_, T, W>
 where
     T: 'static + Animate,
+    W: Widget<Message, Theme, Renderer>,
     Renderer: iced_core::Renderer,
 {
     fn size(&self) -> Size<Length> {
-        self.cached_element.as_widget().size()
+        self.cached_element.size()
     }
 
     fn state(&self) -> tree::State {
@@ -215,7 +195,6 @@ where
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.cached_element
-            .as_widget_mut()
             .layout(&mut tree.children[0], renderer, limits);
 
         tree.size = tree.children[0].size;
@@ -229,7 +208,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn iced_core::widget::Operation<()>,
     ) {
-        self.cached_element.as_widget_mut().operate(
+        self.cached_element.operate(
             &mut state.children[0],
             layout,
             viewport,
@@ -247,7 +226,7 @@ where
         translation: iced_core::Vector,
         window: Size,
     ) -> Vec<iced_core::overlay::Element<'b, Message, Theme, Renderer>> {
-        self.cached_element.as_widget_mut().overlay(
+        self.cached_element.overlay(
             &mut tree.children[0],
             layout,
             renderer,
@@ -265,13 +244,8 @@ where
         viewport: &iced_core::Rectangle,
         renderer: &Renderer,
     ) -> iced_core::mouse::Interaction {
-        self.cached_element.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.cached_element
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -284,7 +258,7 @@ where
         cursor: iced_core::mouse::Cursor,
         viewport: &iced_core::Rectangle,
     ) {
-        self.cached_element.as_widget().draw(
+        self.cached_element.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -305,7 +279,7 @@ where
         shell: &mut iced_core::Shell<'_, Message>,
         viewport: &iced_core::Rectangle,
     ) {
-        self.cached_element.as_widget_mut().update(
+        self.cached_element.update(
             &mut tree.children[0],
             event,
             layout,
@@ -339,10 +313,10 @@ where
 }
 
 /// A helper function to create an `AnimationBuilder` with a given value and builder function.
-pub fn animation_builder<'a, T, Message, Theme, Renderer>(
+pub fn animation_builder<'a, T, W>(
     value: T,
-    builder: impl Fn(T) -> Element<'a, Message, Theme, Renderer> + 'a,
-) -> AnimationBuilder<'a, T, Message, Theme, Renderer>
+    builder: impl Fn(T) -> W + 'a,
+) -> AnimationBuilder<'a, T, W>
 where
     T: 'static + Animate,
 {

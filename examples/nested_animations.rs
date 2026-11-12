@@ -4,7 +4,7 @@
 //! `push_maybe` calls in that example, although I haven't figured out a workaround yet.
 use iced::{
     widget::{button, column, container, row, text},
-    Border, Color, Element, Length,
+    Border, Color, Length, Widget,
 };
 use iced_anim::{transition::Easing, Animated, Animation, Event};
 
@@ -58,7 +58,7 @@ impl State {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let buttons = row![
             button(text("Adjust size")).on_press(Message::ChangeSize(
                 if *self.size.target() == 50.0 {
@@ -104,7 +104,6 @@ impl State {
             .spacing(8)
             .padding(8)
             .width(Length::Shrink)
-            .into()
     }
 }
 

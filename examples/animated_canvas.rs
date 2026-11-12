@@ -6,9 +6,9 @@ use iced::{
         canvas::{self, Frame, Geometry, Path},
         Canvas,
     },
-    Color, Element,
+    Color,
     Length::Fill,
-    Padding, Point, Rectangle, Renderer, Size, Theme,
+    Padding, Point, Rectangle, Renderer, Size, Theme, Widget,
 };
 use iced_anim::{spring::Motion, Animated, Animation, Event};
 
@@ -51,13 +51,12 @@ impl Default for AppState {
 }
 
 impl AppState {
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         Animation::new(
             &self.animated_selection,
             Canvas::new(self).width(Fill).height(Fill),
         )
         .on_update(Message::UpdateAnimatedSelection)
-        .into()
     }
 
     pub fn update(&mut self, message: Message) {
@@ -117,19 +116,17 @@ impl canvas::Program<Message> for AppState {
     ) -> Option<canvas::Action<Message>> {
         match event {
             canvas::Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                let Some(index) = self
+                let index = self
                     .shapes
                     .iter()
-                    .position(|shape| shape.contains(*position))
-                else {
-                    return None;
-                };
+                    .position(|shape| shape.contains(*position))?;
 
                 // Don't update the selection if it hasn't changed
                 if index == self.hovered_index {
                     return None;
                 }
 
+                #[allow(clippy::unnecessary_map_on_constructor)]
                 Some(Message::SelectIndex(index))
                     .map(canvas::Action::publish)
                     .map(canvas::Action::and_capture)
