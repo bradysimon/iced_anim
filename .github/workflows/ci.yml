@@ -1,0 +1,26 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hecrj/setup-rust-action@v2
+        with:
+          components: clippy
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get -qq update
+          sudo apt-get install -y libxkbcommon-dev
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check lints
+        run: cargo lint
+      - name: Run tests
+        run: |
+          cargo test --verbose --doc
+          cargo test --verbose --all-targets
