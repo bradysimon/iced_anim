@@ -2,7 +2,7 @@
 use iced::{
     theme::Base,
     widget::{button, text},
-    Border, Color, Element,
+    Border, Color, Widget,
 };
 use iced_anim::{Animate, Animated, Animation, Event};
 
@@ -114,7 +114,12 @@ impl text::Catalog for Theme {
     fn style(&self, _class: &Self::Class<'_>) -> text::Style {
         text::Style {
             color: Some(self.palette().text),
+            selection: Some(self.palette().background),
         }
+    }
+
+    fn selection(&self) -> Color {
+        self.palette().background
     }
 }
 
@@ -165,7 +170,7 @@ impl State {
         }
     }
 
-    fn view(&self) -> Element<'_, Message, Theme> {
+    fn view(&self) -> impl Widget<Message, Theme> + '_ {
         Animation::new(
             &self.theme,
             button(text("Change theme"))
@@ -173,7 +178,6 @@ impl State {
                 .padding(8),
         )
         .on_update(Message::ChangeTheme)
-        .into()
     }
 
     fn next_theme(&self) -> Theme {

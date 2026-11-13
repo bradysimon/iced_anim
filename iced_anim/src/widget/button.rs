@@ -4,9 +4,9 @@ use iced_core::{
     layout,
     mouse::{self, Cursor},
     overlay, renderer, touch,
-    widget::{tree, Operation, Tree},
-    window, Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shell, Size,
-    Vector, Widget,
+    widget::{tree, Meta, Operation, Tree},
+    window, Background, Color, Event, Layout, Length, Padding, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 // Re-export the widget types for convenience
@@ -15,12 +15,11 @@ pub use iced_widget::button::{
 };
 
 /// An animated button that will automatically transition between different styles.
-pub struct Button<'a, Message, Theme = iced_core::Theme, Renderer = iced_widget::Renderer>
+pub struct Button<'a, Message, W = iced_widget::Element<'a, Message>, Theme = iced_core::Theme>
 where
-    Renderer: iced_core::Renderer,
     Theme: Catalog,
 {
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
@@ -44,15 +43,12 @@ impl<'a, Message: Clone> OnPress<'a, Message> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme> Button<'a, Message, W, Theme>
 where
-    Renderer: iced_core::Renderer,
     Theme: Catalog,
 {
     /// Creates a new [`Button`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
-        let content = content.into();
-
+    pub fn new(content: W) -> Self {
         Button {
             content,
             on_press: None,
@@ -177,12 +173,15 @@ struct State {
     animated_state: AnimatedState<Status, Style>,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Button<'a, Message, Theme, Renderer>
+impl<Message, W, Theme> Meta for Button<'_, Message, W, Theme> where Theme: Catalog {}
+
+impl<'a, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Button<'a, Message, W, Theme>
 where
     Message: 'a + Clone,
-    Renderer: 'a + iced_core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
     Theme: Catalog,
+    Renderer: 'a + iced_core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -221,7 +220,7 @@ where
             self.height,
             self.padding,
             |tree, limits| {
-                self.content.as_widget_mut().layout(tree, renderer, limits);
+                self.content.layout(tree, renderer, limits);
 
                 tree.size
             },
@@ -241,7 +240,6 @@ where
             let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         });
     }
@@ -258,7 +256,7 @@ where
     ) {
         let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             content_tree,
             event,
             content_layout,
@@ -367,7 +365,7 @@ where
             *viewport
         };
 
-        self.content.as_widget().draw(
+        self.content.draw(
             content_tree,
             renderer,
             theme,
@@ -409,20 +407,7 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: iced_core::Renderer + 'a,
-{
-    fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(button)
     }
 }
 
@@ -434,12 +419,9 @@ pub(crate) const DEFAULT_PADDING: Padding = Padding {
     left: 10.0,
 };
 
-pub fn button<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Button<'a, Message, Theme, Renderer>
+pub fn button<'a, Message, W, Theme>(content: W) -> Button<'a, Message, W, Theme>
 where
     Theme: Catalog,
-    Renderer: iced_core::Renderer,
 {
     Button::new(content)
 }

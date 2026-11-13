@@ -2,7 +2,7 @@ use iced::{
     theme::palette::{self, Pair, Palette},
     time::Duration,
     widget::{column, container, pick_list, row, space, text, tooltip, Row},
-    Border, Element, Length, Theme,
+    Border, Length, Theme, Widget,
 };
 use iced_anim::{Animated, Animation, Easing, Event};
 
@@ -42,7 +42,7 @@ impl State {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let page = container(
             row![
                 pick_list(Some(self.theme.target()), Theme::ALL, Theme::to_string)
@@ -71,13 +71,11 @@ impl State {
         .width(Length::Fill)
         .height(Length::Fill);
 
-        Animation::new(&self.theme, page)
-            .on_update(Message::UpdateTheme)
-            .into()
+        Animation::new(&self.theme, page).on_update(Message::UpdateTheme)
     }
 }
 
-fn palette_grid<'a>(palette: &Palette) -> Element<'a, Message> {
+fn palette_grid<'a>(palette: &Palette) -> impl Widget<Message> + 'a {
     // The various shades of a palette
     let shades = [
         (
@@ -119,7 +117,6 @@ fn palette_grid<'a>(palette: &Palette) -> Element<'a, Message> {
                 pair_square(format!("{name} base"), base),
                 pair_square(format!("{name} strong"), strong),
             ]
-            .into()
         },
     )))
     .padding(1.0)
@@ -131,10 +128,9 @@ fn palette_grid<'a>(palette: &Palette) -> Element<'a, Message> {
         },
         ..Default::default()
     })
-    .into()
 }
 
-fn background_palette_grid(background: &palette::Background) -> Element<'_, Message> {
+fn background_palette_grid(background: &palette::Background) -> impl Widget<Message> + '_ {
     container(column![
         row![
             pair_square("Weak Background".to_string(), background.weak),
@@ -158,10 +154,9 @@ fn background_palette_grid(background: &palette::Background) -> Element<'_, Mess
         },
         ..Default::default()
     })
-    .into()
 }
 
-fn pair_square<'a>(name: String, pair: Pair) -> Element<'a, Message> {
+fn pair_square<'a>(name: String, pair: Pair) -> impl Widget<Message> + 'a {
     tooltip(
         container(space().width(Length::Fill).height(Length::Fill))
             .width(Length::Fixed(48.0))
@@ -172,6 +167,7 @@ fn pair_square<'a>(name: String, pair: Pair) -> Element<'a, Message> {
             }),
         container(text(name).style(|theme: &iced::Theme| text::Style {
             color: Some(theme.seed().text),
+            selection: None,
         }))
         .style(|theme: &iced::Theme| container::Style {
             background: Some(theme.palette().background.weak.color.into()),
@@ -183,9 +179,8 @@ fn pair_square<'a>(name: String, pair: Pair) -> Element<'a, Message> {
             ..Default::default()
         })
         .padding(8),
-        tooltip::Position::Top,
     )
-    .into()
+    .position(tooltip::Position::Top)
 }
 
 pub fn main() -> iced::Result {

@@ -5,9 +5,9 @@
 use iced::{
     time::Duration,
     widget::{container, mouse_area, space},
-    Border, Color, Element,
+    Border, Color,
     Length::{self, Fill},
-    Point, Size, Subscription, Theme,
+    Point, Size, Subscription, Theme, Widget,
 };
 use iced_anim::{spring::Motion, Animated, Animation, Event};
 
@@ -55,7 +55,7 @@ impl State {
         })
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let size = self.size;
         container(
             mouse_area(
@@ -80,7 +80,6 @@ impl State {
         )
         .width(Fill)
         .height(Fill)
-        .into()
     }
 }
 

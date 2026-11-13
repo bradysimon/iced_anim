@@ -3,9 +3,9 @@ use iced::{
     time::Duration,
     widget::{checkbox, column, container, row, text},
     Alignment::Center,
-    Background, Border, Color, Element, Gradient,
+    Background, Border, Color, Gradient,
     Length::Fill,
-    Theme,
+    Theme, Widget,
 };
 use iced_anim::{
     spring::Motion,
@@ -36,7 +36,7 @@ impl State {
         };
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> + '_ {
         let is_enabled = !self.is_disabled;
         container(
             column![
@@ -76,7 +76,6 @@ impl State {
             .padding(8),
         )
         .center(Fill)
-        .into()
     }
 }
 
