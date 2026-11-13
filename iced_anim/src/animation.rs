@@ -65,7 +65,7 @@ pub struct Animation<'a, T: Animate, Message, W> {
     animated_value: &'a Animated<T>,
     /// The content that will respond to the animation.
     content: W,
-    /// The function that will be called when the spring needs to be updated.
+    /// Callback for when the animation should be updated.
     on_update: Option<Box<dyn Fn(Event<T>) -> Message>>,
     /// Whether animations are disabled, in which case the value will be updated
     /// immediately without animating. Useful for reduced motion preferences.
@@ -87,7 +87,7 @@ where
         }
     }
 
-    /// Sets the function that will be called when the spring needs to be updated.
+    /// Sets the function that will be called when the animation should be updated.
     pub fn on_update<F>(mut self, build_message: F) -> Self
     where
         F: Fn(Event<T>) -> Message + 'static,

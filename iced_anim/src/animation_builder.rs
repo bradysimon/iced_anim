@@ -83,8 +83,7 @@ use iced_core::{
 ///
 /// This is useful for animating changes to a widget's appearance or layout
 /// based on some state change. Animations happen automatically when the value
-/// changes, and the widget will use spring interpolation to animate the value
-/// over a specified duration.
+/// changes, and the widget will animate based on the configured `mode`.
 pub struct AnimationBuilder<'a, T, W>
 where
     T: 'static + Animate,
@@ -175,7 +174,7 @@ where
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        // Update the spring's target if it has changed
+        // Update the animation's target if it has changed
         let state = tree.state.downcast_mut::<State<T>>();
         if state.animation.target() != &self.target {
             if self.is_disabled {
@@ -295,7 +294,7 @@ where
 
         let state = tree.state.downcast_mut::<State<T>>();
 
-        // Request a redraw if the spring has remaining energy
+        // Request a redraw if we should keep animating.
         if state.animation.is_animating() {
             shell.request_redraw();
             // Only invalidate the layout if the user indicates to do so
